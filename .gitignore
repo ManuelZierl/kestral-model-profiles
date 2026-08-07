@@ -1,0 +1,4 @@
+node_modules/
+.kestral-contract/
+dist.next/
+dist.previous/

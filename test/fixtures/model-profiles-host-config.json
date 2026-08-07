@@ -1,0 +1,43 @@
+{
+  "profiles": [
+    {
+      "id": "focused-work",
+      "title": "Focused work",
+      "description": "A concise setup for recurring writing and review.",
+      "connector_id": "llm-provider/local",
+      "model": "model-a",
+      "reasoning": "medium",
+      "temperature": 0.2,
+      "max_output_tokens": 4096,
+      "tools": [
+        "notes/read",
+        "reading-insights/list_read_marks"
+      ],
+      "prompt": {
+        "layer_ids": [
+          "assistant-instructions"
+        ],
+        "custom_texts": [
+          "Be concise and name uncertainty."
+        ]
+      }
+    },
+    {
+      "id": "deep-research",
+      "title": "Deep research",
+      "description": "",
+      "connector_id": "llm-provider/cloud",
+      "model": "model-b",
+      "reasoning": "high",
+      "temperature": null,
+      "max_output_tokens": 8192,
+      "tools": [],
+      "prompt": {
+        "layer_ids": [],
+        "custom_texts": [
+          "Separate sourced facts from open questions."
+        ]
+      }
+    }
+  ]
+}

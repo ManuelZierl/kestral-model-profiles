@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model Profiles</title>
+  <style>* { box-sizing: border-box; }
+html { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var(--color-surface); color: var(--color-text); }
+body { margin: 0; min-width: 0; background: var(--color-surface); }
+button, input, select, textarea { font: inherit; }
+button, input, select { min-height: 2.75rem; }
+button { border: 1px solid var(--color-border); border-radius: 0.7rem; padding: 0.55em 0.9em; cursor: pointer; font-weight: 650; }
+button:disabled { cursor: not-allowed; opacity: 0.65; }
+.workspace[aria-busy="true"] button:disabled { cursor: wait; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 0.2rem solid var(--color-focus-ring); outline-offset: 0.12rem; }
+button.primary { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-contrast); }
+button.secondary { background: var(--color-surface-raised); color: var(--color-text); }
+button.quiet { border-color: transparent; background: transparent; color: var(--color-text-muted); }
+button.danger { border-color: var(--color-danger-border); background: var(--color-danger-soft); color: var(--color-danger-text); }
+h1, h2, h3, p { margin-block-start: 0; }
+h1 { margin-block-end: 0.55rem; font-size: clamp(2rem, 1.55rem + 2vw, 3.35rem); line-height: 1; letter-spacing: -0.04em; }
+h2 { margin-block-end: 0; font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.65rem); }
+h3 { margin-block-end: 0.15rem; font-size: 1rem; }
+.hero { padding: clamp(1.25rem, 0.75rem + 2vw, 2.75rem); border-bottom: 1px solid var(--color-border-subtle); background: var(--color-surface-raised); }
+.lede { max-width: 64ch; margin-block-end: 1rem; color: var(--color-text-muted); font-size: 1rem; line-height: 1.6; }
+.eyebrow { margin-block-end: 0.35rem; color: var(--color-accent-text); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.11em; text-transform: uppercase; }
+.authority-note { width: min(100%, 48rem); display: flex; flex-wrap: wrap; gap: 0.3rem 0.75rem; padding: 0.8rem 0.9rem; border: 1px solid var(--color-accent-border); border-radius: 0.8rem; background: var(--color-accent-soft); color: var(--color-accent-text); line-height: 1.45; }
+.load-state { width: min(calc(100% - 2rem), 48rem); margin: clamp(1rem, 0.6rem + 1.8vw, 2.5rem) auto; padding: clamp(1rem, 0.8rem + 1vw, 1.5rem); border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface-raised); }
+.load-state p { margin-block: 0.5rem 1rem; color: var(--color-text-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.load-state.error { border-color: var(--color-danger-border); background: var(--color-danger-soft); color: var(--color-danger-text); }
+.load-state.error p { color: var(--color-danger-text); }
+.workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); align-items: start; gap: clamp(1rem, 0.75rem + 1vw, 1.75rem); padding: clamp(1rem, 0.6rem + 1.8vw, 2.5rem); }
+.library, .editor { min-width: 0; }
+.editor { padding: clamp(1rem, 0.8rem + 1vw, 1.5rem); border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface-raised); }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-block-end: 1rem; }
+.section-heading > span { color: var(--color-text-muted); font-size: 0.78rem; }
+.profile-list { display: grid; gap: 0.75rem; }
+.profile-card { padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 0.85rem; background: var(--color-surface-raised); }
+.profile-card > p { margin-block-end: 0.75rem; color: var(--color-text-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.profile-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.profile-id, .parameters { margin-block-end: 0.7rem; color: var(--color-text-faint); font: 0.75rem/1.45 ui-monospace, monospace; overflow-wrap: anywhere; }
+.tool-count { flex: none; padding: 0.25em 0.55em; border-radius: 999rem; background: var(--color-surface-muted); color: var(--color-text-muted); font-size: 0.72rem; font-weight: 700; }
+dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 0.6rem; margin: 0 0 0.7rem; }
+dl div { min-width: 0; }
+dt { color: var(--color-text-faint); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+dd { margin: 0.15rem 0 0; overflow-wrap: anywhere; }
+.card-actions, .form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.delete-question { color: var(--color-danger-text); font-size: 0.82rem; font-weight: 700; }
+.empty { padding: 2rem 1.25rem; border: 1px dashed var(--color-border); border-radius: 0.85rem; text-align: center; color: var(--color-text-muted); }
+.empty p { max-width: 42ch; margin: 0.4rem auto 0; line-height: 1.5; }
+form { display: grid; gap: 1rem; }
+label { min-width: 0; display: grid; gap: 0.35rem; color: var(--color-text); font-size: 0.82rem; font-weight: 700; }
+label em { color: var(--color-text-faint); font-style: normal; font-weight: 500; }
+label small, fieldset > p { margin: 0; color: var(--color-text-faint); font-size: 0.72rem; font-weight: 450; line-height: 1.45; }
+input, select, textarea { width: 100%; min-width: 0; border: 1px solid var(--color-border); border-radius: 0.65rem; padding: 0.65rem 0.75rem; background: var(--color-surface); color: var(--color-text); }
+textarea { resize: vertical; line-height: 1.45; }
+fieldset { min-width: 0; display: grid; gap: 0.8rem; margin: 0; padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 0.8rem; }
+legend { padding-inline: 0.35rem; font-weight: 750; }
+.field-grid, .generation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 0.8rem; }
+.choice-list, .custom-prompts { min-width: 0; display: grid; gap: 0.55rem; }
+.check-row { min-width: 0; min-height: 2.75rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0.65rem; padding: 0.7rem 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 0.7rem; background: var(--color-surface); cursor: pointer; }
+.check-row:has(input:checked) { border-color: var(--color-accent-border); background: var(--color-accent-soft); }
+.check-row.fixed { cursor: default; }
+.check-row.unavailable { border-color: var(--color-warning-border); background: var(--color-warning-soft); }
+.check-row input { width: 1.25rem; min-height: 1.25rem; margin: 0.15rem 0 0; }
+.check-row > span { min-width: 0; display: grid; gap: 0.15rem; }
+.check-row strong, .check-row small { overflow-wrap: anywhere; }
+.check-row details { grid-column: 2; min-width: 0; font-weight: 450; }
+.check-row summary { min-height: 1.75rem; cursor: pointer; color: var(--color-text-muted); }
+.check-row pre { max-height: 12rem; overflow: auto; margin: 0.4rem 0 0; padding: 0.65rem; border-radius: 0.55rem; background: var(--color-surface-muted); color: var(--color-text); white-space: pre-wrap; overflow-wrap: anywhere; font: 0.75rem/1.45 ui-monospace, monospace; }
+.subsection-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding-top: 0.2rem; }
+.custom-prompt { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.55rem; }
+.compact { min-height: 2rem; padding: 0.3em 0.65em; font-size: 0.78rem; }
+.empty-choice { margin: 0; color: var(--color-text-faint); font-size: 0.78rem; }
+.inline-warning { padding: 0.65rem 0.75rem; border: 1px solid var(--color-warning-border); border-radius: 0.65rem; background: var(--color-warning-soft); color: var(--color-warning-text); overflow-wrap: anywhere; }
+.error-summary { padding: 0.8rem 1rem; border: 1px solid var(--color-danger-border); border-radius: 0.75rem; background: var(--color-danger-soft); color: var(--color-danger-text); }
+.error-summary ul { margin-block-end: 0; padding-inline-start: 1.2rem; }
+.status { min-height: 1.5rem; margin: 0; padding: 0 1.25rem 1rem; color: var(--color-success-text); text-align: center; }
+.status.error { color: var(--color-danger-text); }
+code { font: 0.9em ui-monospace, monospace; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+@media (max-width: 30em) {
+  .custom-prompt { grid-template-columns: 1fr; }
+  .custom-prompt button, .form-actions button { width: 100%; }
+}
+</style>
+</head>
+<body>
+  <main id="app" aria-busy="true"></main>
+  <script>(() => {
+  // src/manifest.mjs
+  var requiredTrimmedText = (maxLength) => ({
+    type: "string",
+    minLength: 1,
+    maxLength,
+    pattern: "^\\S(?:[\\s\\S]*\\S)?$"
+  });
+  var optionalTrimmedText = (maxLength) => ({
+    type: "string",
+    maxLength,
+    pattern: "^(?:|\\S(?:[\\s\\S]*\\S)?)$"
+  });
+  var profileProperties = {
+    id: { type: "string", minLength: 1, maxLength: 64, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    title: requiredTrimmedText(120),
+    description: optionalTrimmedText(1e3),
+    connector_id: requiredTrimmedText(256),
+    model: requiredTrimmedText(256),
+    reasoning: { type: ["string", "null"], enum: ["minimal", "low", "medium", "high", "xhigh", "max", null] },
+    temperature: { type: ["number", "null"], minimum: 0, maximum: 2 },
+    max_output_tokens: { type: ["integer", "null"], minimum: 1, maximum: 1e6 },
+    tools: { type: "array", maxItems: 64, uniqueItems: true, items: { type: "string", minLength: 3, maxLength: 257, pattern: "^[^/\\s]+/[^/\\s]+$" } },
+    prompt: {
+      type: "object",
+      additionalProperties: false,
+      required: ["layer_ids", "custom_texts"],
+      properties: {
+        layer_ids: { type: "array", maxItems: 64, uniqueItems: true, items: { ...requiredTrimmedText(256), not: { const: "protocol" } } },
+        custom_texts: { type: "array", maxItems: 8, items: requiredTrimmedText(16384) }
+      }
+    }
+  };
+  var profileSchema = {
+    type: "object",
+    additionalProperties: false,
+    required: Object.keys(profileProperties),
+    properties: profileProperties
+  };
+  var modelProfilesConfigSchema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["profiles"],
+    properties: { profiles: { type: "array", maxItems: 64, items: profileSchema } }
+  };
+
+  // src/profile-model.mjs
+  var EMPTY_PROFILE = Object.freeze({
+    id: "",
+    title: "",
+    description: "",
+    connector_id: "",
+    model: "",
+    reasoning: null,
+    temperature: null,
+    max_output_tokens: null,
+    tools: [],
+    prompt: { layer_ids: [], custom_texts: [] }
+  });
+  var REASONING = /* @__PURE__ */ new Set(["minimal", "low", "medium", "high", "xhigh", "max"]);
+  var PROFILE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  var TOOL_REF = /^[^/\s]+\/[^/\s]+$/;
+  var MAX_PROMPT_TEXT_CHARS = 16 * 1024;
+  var MAX_PROFILES = modelProfilesConfigSchema.properties.profiles.maxItems;
+  var isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+  var characterCount = (value) => Array.from(value).length;
+  var summarize = (value) => {
+    const characters = Array.from(String(value));
+    return characters.length <= 80 ? characters.join("") : `${characters.slice(0, 77).join("")}...`;
+  };
+  function validateExactFields(value, expected, label, errors) {
+    for (const field of expected) {
+      if (!Object.hasOwn(value, field)) errors.push(`${label} is missing '${field}'.`);
+    }
+    for (const field of Object.keys(value)) {
+      if (!expected.includes(field)) errors.push(`${label} contains unknown field '${summarize(field)}'.`);
+    }
+  }
+  function validateText(value, label, max, allowEmpty, errors) {
+    if (typeof value !== "string") {
+      errors.push(`${label} must be text.`);
+      return false;
+    }
+    if (!allowEmpty && value.length === 0 || value !== value.trim() || characterCount(value) > max) {
+      errors.push(`${label} ${allowEmpty ? "must be trimmed and at most" : "is required, must be trimmed, and must be at most"} ${max.toLocaleString("en-US")} characters.`);
+      return false;
+    }
+    return true;
+  }
+  function kebabCase(value) {
+    return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-+/g, "-").slice(0, 64).replace(/-+$/g, "");
+  }
+  function validateProfile(profile, existingProfiles, originalId = null) {
+    const errors = [];
+    if (!isObject(profile)) return ["Profile must be an object."];
+    validateExactFields(profile, profileSchema.required, "Profile", errors);
+    if (typeof profile.id !== "string" || !PROFILE_ID.test(profile.id) || profile.id.length > 64) {
+      errors.push("ID must use lowercase letters, numbers, and single hyphens.");
+    }
+    validateText(profile.title, "Name", 120, false, errors);
+    validateText(profile.description, "Description", 1e3, true, errors);
+    validateText(profile.connector_id, "Provider profile ID", 256, false, errors);
+    validateText(profile.model, "Model ID", 256, false, errors);
+    if (profile.reasoning !== null && (typeof profile.reasoning !== "string" || !REASONING.has(profile.reasoning))) errors.push("Reasoning effort is invalid.");
+    if (profile.temperature !== null && (typeof profile.temperature !== "number" || !Number.isFinite(profile.temperature) || profile.temperature < 0 || profile.temperature > 2)) {
+      errors.push("Temperature must be between 0 and 2.");
+    }
+    if (profile.max_output_tokens !== null && (typeof profile.max_output_tokens !== "number" || !Number.isInteger(profile.max_output_tokens) || profile.max_output_tokens < 1 || profile.max_output_tokens > 1e6)) {
+      errors.push("Maximum output tokens must be a whole number from 1 to 1,000,000.");
+    }
+    if (!Array.isArray(profile.tools)) {
+      errors.push("Tools must be a list.");
+    } else {
+      if (profile.tools.length > 64) errors.push("A profile can contain at most 64 tools.");
+      const tools = /* @__PURE__ */ new Set();
+      for (const tool of profile.tools.slice(0, 64)) {
+        if (typeof tool !== "string" || !TOOL_REF.test(tool) || characterCount(tool) > 257) errors.push(`Tool '${summarize(tool)}' must use provider/capability.`);
+        if (tools.has(tool)) errors.push(`Tool '${summarize(tool)}' is listed more than once.`);
+        tools.add(tool);
+      }
+    }
+    if (!isObject(profile.prompt) || !Array.isArray(profile.prompt.layer_ids) || !Array.isArray(profile.prompt.custom_texts)) {
+      errors.push("Prompt configuration is required and must contain layer IDs and custom texts.");
+    } else {
+      validateExactFields(profile.prompt, profileSchema.properties.prompt.required, "Prompt configuration", errors);
+      if (profile.prompt.layer_ids.length > 64) errors.push("A profile can select at most 64 prompt layers.");
+      const layers = /* @__PURE__ */ new Set();
+      for (const layer of profile.prompt.layer_ids.slice(0, 64)) {
+        if (typeof layer !== "string" || !layer || layer !== layer.trim() || characterCount(layer) > 256 || layer === "protocol") {
+          errors.push(`Prompt layer '${summarize(layer)}' is invalid.`);
+        }
+        if (layers.has(layer)) errors.push(`Prompt layer '${summarize(layer)}' is selected more than once.`);
+        layers.add(layer);
+      }
+      if (profile.prompt.custom_texts.length > 8) errors.push("A profile can contain at most 8 custom prompt texts.");
+      let totalPromptCharacters = 0;
+      for (const text of profile.prompt.custom_texts.slice(0, 8)) {
+        const length = typeof text === "string" ? characterCount(text) : 0;
+        totalPromptCharacters += length;
+        if (typeof text !== "string" || !text || text !== text.trim() || length > MAX_PROMPT_TEXT_CHARS) {
+          errors.push("Each custom prompt text must be trimmed, non-empty, and at most 16,384 characters.");
+        }
+      }
+      if (totalPromptCharacters > 32 * 1024) errors.push("Custom prompt texts must total at most 32,768 characters.");
+    }
+    if (originalId === null && existingProfiles.length >= MAX_PROFILES) {
+      errors.push(`A profile library can contain at most ${MAX_PROFILES} profiles.`);
+    }
+    if (originalId !== null && !existingProfiles.some((item) => item.id === originalId)) {
+      errors.push("This profile no longer exists. Reload before saving.");
+    }
+    if (originalId !== null && profile.id !== originalId) {
+      errors.push("A saved profile's stable ID cannot change.");
+    }
+    if (existingProfiles.some((item) => item.id === profile.id && item.id !== originalId)) {
+      errors.push(`A profile with ID '${profile.id}' already exists.`);
+    }
+    return errors;
+  }
+  function profilesFromConfig(config) {
+    if (!isObject(config)) throw new Error("Stored model profiles config must be an object.");
+    if (Object.keys(config).length === 0) return [];
+    const configErrors = [];
+    validateExactFields(config, modelProfilesConfigSchema.required, "Stored config", configErrors);
+    if (!Array.isArray(config.profiles)) {
+      configErrors.push("Stored config 'profiles' must be a list.");
+    } else if (config.profiles.length > MAX_PROFILES) {
+      configErrors.push(`Stored config contains more than ${MAX_PROFILES} profiles.`);
+    } else {
+      const ids = /* @__PURE__ */ new Set();
+      config.profiles.forEach((profile, index) => {
+        for (const error of validateProfile(profile, [], null)) {
+          configErrors.push(`Profile ${index + 1}: ${error}`);
+        }
+        if (typeof profile?.id === "string") {
+          if (ids.has(profile.id)) configErrors.push(`Profile ${index + 1}: ID '${summarize(profile.id)}' is duplicated.`);
+          ids.add(profile.id);
+        }
+      });
+    }
+    if (configErrors.length > 0) {
+      throw new Error(`Stored model profiles config is invalid. ${configErrors.join(" ")}`);
+    }
+    return config.profiles;
+  }
+  function profileFromForm(values) {
+    const optionalNumber = (value) => value.trim() === "" ? null : Number(value);
+    const list = (value) => Array.isArray(value) ? value.map((item) => item.trim()).filter(Boolean) : String(value ?? "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+    return {
+      id: values.id.trim(),
+      title: values.title.trim(),
+      description: values.description.trim(),
+      connector_id: values.connector_id.trim(),
+      model: values.model.trim(),
+      reasoning: values.reasoning || null,
+      temperature: optionalNumber(values.temperature),
+      max_output_tokens: optionalNumber(values.max_output_tokens),
+      tools: list(values.tools),
+      prompt: {
+        layer_ids: list(values.prompt_layer_ids),
+        custom_texts: list(values.custom_texts)
+      }
+    };
+  }
+  function upsertProfile(profiles, profile, originalId = null) {
+    if (originalId === null) {
+      if (profiles.length >= MAX_PROFILES) throw new Error(`A profile library can contain at most ${MAX_PROFILES} profiles.`);
+      if (profiles.some((item) => item.id === profile.id)) throw new Error(`A profile with ID '${profile.id}' already exists.`);
+      return [...profiles, profile];
+    }
+    if (profile.id !== originalId) throw new Error("A saved profile's stable ID cannot change.");
+    if (!profiles.some((item) => item.id === originalId)) throw new Error("The profile to update no longer exists.");
+    return profiles.map((item) => item.id === originalId ? profile : item);
+  }
+
+  // src/main.mjs
+  var root = document.querySelector("#app");
+  if (!root) throw new Error("Model Profiles app root is missing");
+  var state = {
+    profiles: [],
+    originalId: null,
+    draft: { ...EMPTY_PROFILE },
+    idEdited: false,
+    context: { connectors: [], tools: [], promptLayers: [] },
+    errors: [],
+    status: "",
+    statusIsError: false,
+    deleteConfirmation: null,
+    saving: false,
+    loadState: "loading",
+    loadError: ""
+  };
+  var escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  function readContext(value) {
+    if (!value || value.kind !== "model-profile-editor") return { connectors: [], tools: [], promptLayers: [] };
+    return {
+      connectors: Array.isArray(value.connectors) ? value.connectors : [],
+      tools: Array.isArray(value.tools) ? value.tools : [],
+      promptLayers: Array.isArray(value.prompt_layers) ? value.prompt_layers : []
+    };
+  }
+  function defaultPrompt() {
+    return {
+      layer_ids: state.context.promptLayers.filter((layer) => layer.id !== "protocol" && layer.included).map((layer) => layer.id),
+      custom_texts: []
+    };
+  }
+  function newDraft() {
+    const connector = state.context.connectors[0];
+    return {
+      ...EMPTY_PROFILE,
+      connector_id: connector?.id ?? "",
+      model: connector?.default_model ?? connector?.models?.[0]?.id ?? "",
+      tools: [],
+      prompt: defaultPrompt()
+    };
+  }
+  function editableProfile(profile) {
+    return {
+      ...structuredClone(profile)
+    };
+  }
+  function selectedConnector() {
+    return state.context.connectors.find((connector) => connector.id === state.draft.connector_id) ?? null;
+  }
+  function modelChoices() {
+    const connector = selectedConnector();
+    const models = Array.isArray(connector?.models) ? [...connector.models] : [];
+    if (state.draft.model && !models.some((model) => model.id === state.draft.model)) {
+      models.unshift({ id: state.draft.model, display_name: null, variants: [], unavailable: true });
+    }
+    return models;
+  }
+  function selectedModel() {
+    return modelChoices().find((model) => model.id === state.draft.model) ?? null;
+  }
+  function variantOptions(selected) {
+    const variants = [...selectedModel()?.variants ?? []];
+    if (selected && !variants.includes(selected)) variants.unshift(selected);
+    return variants.map((value) => `<option value="${escapeHtml(value)}"${selected === value ? " selected" : ""}>${escapeHtml(variantLabel(value))}${selectedModel()?.variants?.includes(value) ? "" : " (not currently advertised)"}</option>`).join("");
+  }
+  function hasVariantChoice() {
+    return (selectedModel()?.variants?.length ?? 0) > 0 || Boolean(state.draft.reasoning);
+  }
+  function variantLabel(value) {
+    return { minimal: "Minimal", low: "Low", medium: "Medium", high: "High", xhigh: "Extra high", max: "Maximum" }[value] ?? value;
+  }
+  function profileList() {
+    if (state.profiles.length === 0) {
+      return `<div class="empty"><strong>No profiles yet</strong><p>Create a focused setup for writing, research, coding, or any repeated task.</p></div>`;
+    }
+    return state.profiles.map((profile) => {
+      const confirming = state.deleteConfirmation === profile.id;
+      const parameters = [
+        profile.reasoning ? `${profile.reasoning} variant` : "provider variant default",
+        profile.temperature === null ? "provider temperature default" : `temperature ${profile.temperature}`,
+        profile.max_output_tokens === null ? "provider token default" : `${profile.max_output_tokens} max tokens`
+      ];
+      const promptSummary = `${profile.prompt.layer_ids.length} Chat layer${profile.prompt.layer_ids.length === 1 ? "" : "s"}, ${profile.prompt.custom_texts.length} custom text${profile.prompt.custom_texts.length === 1 ? "" : "s"}`;
+      return `<article class="profile-card">
+      <div class="profile-heading">
+        <div><h3>${escapeHtml(profile.title)}</h3><p class="profile-id">${escapeHtml(profile.id)}</p></div>
+        <span class="tool-count">${profile.tools.length} ${profile.tools.length === 1 ? "tool" : "tools"}</span>
+      </div>
+      ${profile.description ? `<p>${escapeHtml(profile.description)}</p>` : ""}
+      <dl><div><dt>Provider profile</dt><dd>${escapeHtml(profile.connector_id)}</dd></div><div><dt>Model</dt><dd>${escapeHtml(profile.model)}</dd></div><div><dt>Prompt</dt><dd>${escapeHtml(promptSummary)}</dd></div></dl>
+      <p class="parameters">${parameters.map(escapeHtml).join(" / ")}</p>
+      <div class="card-actions">
+        <button type="button" class="secondary" data-edit="${escapeHtml(profile.id)}">Edit</button>
+        ${confirming ? `<span class="delete-question">Delete this profile? Chat threads using it will return to Chat defaults.</span><button type="button" class="danger" data-confirm-delete="${escapeHtml(profile.id)}">Delete</button><button type="button" class="quiet" data-cancel-delete>Cancel</button>` : `<button type="button" class="quiet" data-delete="${escapeHtml(profile.id)}">Delete</button>`}
+      </div>
+    </article>`;
+    }).join("");
+  }
+  function connectorOptions() {
+    const connectors = [...state.context.connectors];
+    if (state.draft.connector_id && !connectors.some((connector) => connector.id === state.draft.connector_id)) {
+      connectors.unshift({ id: state.draft.connector_id, unavailable: true, models: [] });
+    }
+    return connectors.map((connector) => `<option value="${escapeHtml(connector.id)}"${connector.id === state.draft.connector_id ? " selected" : ""}>${escapeHtml(connector.id)}${connector.unavailable ? " (not configured)" : ""}</option>`).join("");
+  }
+  function modelOptions() {
+    return modelChoices().map((model) => `<option value="${escapeHtml(model.id)}"${model.id === state.draft.model ? " selected" : ""}>${escapeHtml(model.display_name || model.id)}${model.unavailable ? " (not currently available)" : ""}</option>`).join("");
+  }
+  function toolChoices() {
+    const available = state.context.tools.map((tool) => ({ ...tool, unavailable: false }));
+    const missing = state.draft.tools.filter((reference) => !available.some((tool) => tool.reference === reference)).map((reference) => ({ reference, provider: "Unavailable", name: reference, description: "This tool is not in Chat's current granted catalog.", unavailable: true }));
+    const tools = [...available, ...missing];
+    if (tools.length === 0) return `<p class="empty-choice">Chat currently has no granted tools.</p>`;
+    return tools.map((tool) => `<label class="check-row${tool.unavailable ? " unavailable" : ""}">
+    <input type="checkbox" name="tools" value="${escapeHtml(tool.reference)}"${state.draft.tools.includes(tool.reference) ? " checked" : ""}>
+    <span><strong>${escapeHtml(tool.provider)} / ${escapeHtml(tool.name)}</strong><small>${escapeHtml(tool.description || tool.reference)}</small></span>
+  </label>`).join("");
+  }
+  function promptLayerChoices() {
+    const selectedIds = state.draft.prompt.layer_ids;
+    const protocol = state.context.promptLayers.find((layer) => layer.id === "protocol");
+    const available = state.context.promptLayers.filter((layer) => layer.id !== "protocol" && layer.included);
+    const missing = selectedIds.filter((id) => !available.some((layer) => layer.id === id)).map((id) => ({ id, title: id, source: "Unavailable", content: "This layer is no longer included by Settings \u2192 Chat.", unavailable: true }));
+    return `<label class="check-row fixed">
+      <input type="checkbox" checked disabled>
+      <span><strong>${escapeHtml(protocol?.title ?? "Kestral protocol")}</strong><small>Always included by the host and cannot be replaced.</small></span>
+    </label>${[...available, ...missing].map((layer) => `<label class="check-row${layer.unavailable ? " unavailable" : ""}">
+      <input type="checkbox" name="prompt_layer_ids" value="${escapeHtml(layer.id)}"${selectedIds.includes(layer.id) ? " checked" : ""}>
+      <span><strong>${escapeHtml(layer.title)}</strong><small>${escapeHtml(layer.source ?? "Chat settings")}</small></span>
+      ${layer.content ? `<details><summary>Review text</summary><pre>${escapeHtml(layer.content)}</pre></details>` : ""}
+    </label>`).join("")}`;
+  }
+  function customPromptTexts() {
+    const texts = state.draft.prompt.custom_texts;
+    if (texts.length === 0) return `<p class="empty-choice">No profile-specific prompt text.</p>`;
+    return texts.map((text, index) => `<div class="custom-prompt">
+    <label><span>Custom text ${index + 1}</span><textarea name="custom_texts" rows="4" placeholder="Add instructions for this model profile.">${escapeHtml(text)}</textarea></label>
+    <button type="button" class="quiet compact" data-remove-prompt="${index}">Remove</button>
+  </div>`).join("");
+  }
+  function loadStatePanel() {
+    if (state.loadState === "loading") {
+      return `<section class="load-state" role="status"><strong>Loading profiles...</strong><p>Reading the host-validated profile library.</p></section>`;
+    }
+    return `<section class="load-state error" role="alert" tabindex="-1">
+    <strong>Profiles could not be loaded</strong>
+    <p>${escapeHtml(state.loadError)}</p>
+    <p>Editing stays blocked so a failed load cannot replace saved profiles.</p>
+    <button type="button" class="secondary" data-retry-load>Try again</button>
+  </section>`;
+  }
+  function render() {
+    const draft = state.draft;
+    const connector = selectedConnector();
+    const atProfileLimit = state.originalId === null && state.profiles.length >= 64;
+    root.innerHTML = `<header class="hero">
+    <p class="eyebrow">Chat setup library</p>
+    <h1>Model Profiles</h1>
+    <p class="lede">Save a model, generation settings, prompt composition, and focused tool list once. Pick the profile beside Chat's composer whenever you need it.</p>
+    <div class="authority-note"><strong>Profiles can only reduce access.</strong><span>A profile never grants a tool. Chat uses the overlap between this list and its current permissions.</span></div>
+  </header>
+  ${state.loadState === "ready" ? `<div class="workspace" aria-busy="${state.saving}">
+    <section class="library" aria-labelledby="library-title">
+      <div class="section-heading"><div><p class="eyebrow">Saved setups</p><h2 id="library-title">Your profiles</h2></div><span>${state.profiles.length} of 64</span></div>
+      <div class="profile-list">${profileList()}</div>
+    </section>
+    <section class="editor" aria-labelledby="editor-title">
+      <div class="section-heading"><div><p class="eyebrow">${state.originalId ? "Update setup" : "New setup"}</p><h2 id="editor-title" tabindex="-1">${state.originalId ? "Edit profile" : "Create profile"}</h2></div></div>
+      <form id="profile-form" novalidate>
+        ${state.errors.length > 0 ? `<div class="error-summary" role="alert" tabindex="-1"><strong>Check this profile</strong><ul>${state.errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul></div>` : ""}
+        <div class="field-grid">
+          <label><span>Name</span><input name="title" required value="${escapeHtml(draft.title)}" autocomplete="off"><small>Shown in Chat's profile picker.</small></label>
+          <label><span>Stable ID</span><input name="id" required maxlength="64" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="${escapeHtml(draft.id)}" placeholder="generated-from-name" autocomplete="off"${state.originalId ? ' readonly aria-readonly="true"' : ""}><small>${state.originalId ? "The ID cannot change after the profile is first saved." : "Generated from the name. You can edit it before saving."}</small></label>
+        </div>
+        <label><span>Description <em>optional</em></span><textarea name="description" rows="3" placeholder="When should you choose this profile?">${escapeHtml(draft.description)}</textarea></label>
+        <fieldset><legend>Model</legend><p>Choose from profiles configured under <strong>Settings \u2192 Model providers</strong>. Model choices are discovered from the selected provider profile.</p><div class="field-grid">
+          <label><span>Model provider profile</span><select name="connector_id" required ${state.context.connectors.length === 0 ? "disabled" : ""}><option value="">Choose a profile</option>${connectorOptions()}</select></label>
+          <label><span>Model</span><select name="model" required ${modelChoices().length === 0 ? "disabled" : ""}><option value="">Choose a model</option>${modelOptions()}</select></label>
+        </div>${connector?.discovery_error ? `<p class="inline-warning" role="status">Model discovery failed. The configured default remains available: ${escapeHtml(connector.discovery_error)}</p>` : ""}</fieldset>
+        <fieldset><legend>Generation</legend><p>Leave a value blank to keep the provider profile's default.</p><div class="generation-grid">
+          ${hasVariantChoice() ? `<label><span>Model variant</span><select name="reasoning"><option value="">Provider default</option>${variantOptions(draft.reasoning)}</select></label>` : ""}
+          <label><span>Temperature</span><input name="temperature" type="number" min="0" max="2" step="0.1" value="${draft.temperature ?? ""}" placeholder="Provider default"></label>
+          <label><span>Maximum output tokens</span><input name="max_output_tokens" type="number" min="1" max="1000000" step="1" value="${draft.max_output_tokens ?? ""}" placeholder="Provider default"></label>
+        </div></fieldset>
+        <fieldset><legend>System prompt</legend><p>Select the live prompt layers composed under <strong>Settings \u2192 Chat</strong>. The Kestral protocol stays mandatory. Profile-specific texts are appended in order; clearing every optional layer and text intentionally uses the protocol alone.</p>
+          <div class="choice-list">${promptLayerChoices()}</div>
+          <div class="subsection-heading"><strong>Profile-specific text</strong><button type="button" class="secondary compact" data-add-prompt ${(draft.prompt?.custom_texts.length ?? 0) >= 8 ? "disabled" : ""}>Add text</button></div>
+          <div class="custom-prompts">${customPromptTexts()}</div>
+        </fieldset>
+        <fieldset><legend>Tools</legend><p>Select from Chat's currently granted capabilities. An empty list gives this profile no tools; revoked tools remain unavailable.</p><div class="choice-list">${toolChoices()}</div></fieldset>
+        ${state.originalId ? `<p class="inline-warning">Saving changes makes existing Chat selections stale. Review and select the updated profile again in Chat.</p>` : ""}
+        ${atProfileLimit ? `<p class="inline-warning">The library already contains 64 profiles. Delete one before creating another.</p>` : ""}
+        <div class="form-actions"><button type="submit" class="primary" ${state.saving || atProfileLimit ? "disabled" : ""}>${state.saving ? "Saving..." : "Save profile"}</button><button type="button" class="secondary" data-reset>${state.originalId ? "Cancel editing" : "Clear"}</button></div>
+      </form>
+    </section>
+  </div>` : loadStatePanel()}
+  <p class="status${state.statusIsError ? " error" : ""}" role="${state.statusIsError ? "alert" : "status"}" tabindex="-1" aria-live="${state.statusIsError ? "assertive" : "polite"}">${escapeHtml(state.status)}</p>`;
+    root.setAttribute("aria-busy", String(state.loadState === "loading" || state.saving));
+    if (state.saving) {
+      root.querySelectorAll("button, input, select, textarea").forEach((control) => {
+        control.disabled = true;
+      });
+    }
+    wireEvents();
+  }
+  function valuesFor(form) {
+    const value = (name) => form.elements.namedItem(name)?.value ?? "";
+    return {
+      id: value("id"),
+      title: value("title"),
+      description: value("description"),
+      connector_id: value("connector_id"),
+      model: value("model"),
+      reasoning: value("reasoning"),
+      temperature: value("temperature"),
+      max_output_tokens: value("max_output_tokens"),
+      tools: [...form.querySelectorAll('input[name="tools"]:checked')].map((input) => input.value),
+      prompt_layer_ids: [...form.querySelectorAll('input[name="prompt_layer_ids"]:checked')].map((input) => input.value),
+      custom_texts: [...form.querySelectorAll('textarea[name="custom_texts"]')].map((input) => input.value)
+    };
+  }
+  function readDraft(form, keepEmptyCustomTexts = false) {
+    const values = valuesFor(form);
+    const draft = profileFromForm(values);
+    if (keepEmptyCustomTexts) draft.prompt.custom_texts = values.custom_texts;
+    return draft;
+  }
+  function clearStatus() {
+    if (!state.status && !state.statusIsError) return;
+    state.status = "";
+    state.statusIsError = false;
+    const status = root.querySelector(".status");
+    if (status) {
+      status.textContent = "";
+      status.classList.remove("error");
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+    }
+  }
+  async function loadProfiles(config, focusFailure = false) {
+    state.loadState = "loading";
+    state.loadError = "";
+    state.status = "";
+    state.statusIsError = false;
+    render();
+    try {
+      const currentConfig = config === void 0 ? await window.appHost.getConfig() : config;
+      state.profiles = profilesFromConfig(currentConfig);
+      state.draft = newDraft();
+      state.loadState = "ready";
+    } catch (error) {
+      state.loadState = "failed";
+      state.loadError = error instanceof Error ? error.message : String(error);
+    }
+    render();
+    if (focusFailure && state.loadState === "failed") root.querySelector(".load-state.error")?.focus();
+  }
+  async function persist(nextProfiles, success) {
+    if (state.loadState !== "ready" || state.saving) return false;
+    state.saving = true;
+    state.status = "Saving...";
+    state.statusIsError = false;
+    render();
+    try {
+      await window.appHost.updateConfig({ profiles: nextProfiles });
+      state.profiles = nextProfiles;
+      state.status = success;
+      return true;
+    } catch (error) {
+      state.status = `Could not save: ${error instanceof Error ? error.message : String(error)}`;
+      state.statusIsError = true;
+      return false;
+    } finally {
+      state.saving = false;
+    }
+  }
+  function resetEditor(clearStatus2 = true) {
+    state.originalId = null;
+    state.draft = newDraft();
+    state.idEdited = false;
+    state.errors = [];
+    if (clearStatus2) {
+      state.status = "";
+      state.statusIsError = false;
+    }
+  }
+  function wireEvents() {
+    root.querySelector("[data-retry-load]")?.addEventListener("click", () => {
+      void loadProfiles(void 0, true);
+    });
+    const form = root.querySelector("#profile-form");
+    form?.addEventListener("input", clearStatus);
+    form?.elements.namedItem("title")?.addEventListener("input", (event) => {
+      state.draft.title = event.currentTarget.value;
+      if (!state.idEdited) {
+        state.draft.id = kebabCase(state.draft.title);
+        form.elements.namedItem("id").value = state.draft.id;
+      }
+    });
+    form?.elements.namedItem("id")?.addEventListener("input", (event) => {
+      state.idEdited = true;
+      state.draft.id = event.currentTarget.value;
+    });
+    form?.elements.namedItem("connector_id")?.addEventListener("change", (event) => {
+      clearStatus();
+      state.draft = readDraft(form, true);
+      state.draft.connector_id = event.currentTarget.value;
+      const connector = selectedConnector();
+      state.draft.model = connector?.default_model ?? connector?.models?.[0]?.id ?? "";
+      state.draft.reasoning = null;
+      render();
+      root.querySelector('select[name="connector_id"]')?.focus();
+    });
+    form?.elements.namedItem("model")?.addEventListener("change", (event) => {
+      clearStatus();
+      state.draft = readDraft(form, true);
+      state.draft.model = event.currentTarget.value;
+      state.draft.reasoning = null;
+      render();
+      root.querySelector('select[name="model"]')?.focus();
+    });
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (state.saving) return;
+      state.draft = readDraft(form);
+      state.errors = validateProfile(state.draft, state.profiles, state.originalId);
+      if (state.errors.length > 0) {
+        state.status = "Profile not saved.";
+        state.statusIsError = true;
+        render();
+        root.querySelector(".error-summary")?.focus();
+        return;
+      }
+      const next = upsertProfile(state.profiles, state.draft, state.originalId);
+      const saved = await persist(next, `Saved ${state.draft.title}.`);
+      if (saved) resetEditor(false);
+      render();
+      root.querySelector(saved ? 'input[name="title"]' : 'button[type="submit"]')?.focus();
+    });
+    root.querySelector("[data-reset]")?.addEventListener("click", () => {
+      resetEditor();
+      render();
+    });
+    root.querySelector("[data-add-prompt]")?.addEventListener("click", () => {
+      clearStatus();
+      state.draft = readDraft(form, true);
+      state.draft.prompt.custom_texts.push("");
+      render();
+      root.querySelectorAll('textarea[name="custom_texts"]')[state.draft.prompt.custom_texts.length - 1]?.focus();
+    });
+    root.querySelectorAll("[data-remove-prompt]").forEach((button) => button.addEventListener("click", () => {
+      clearStatus();
+      state.draft = readDraft(form, true);
+      state.draft.prompt.custom_texts.splice(Number(button.dataset.removePrompt), 1);
+      render();
+    }));
+    root.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => {
+      const profile = state.profiles.find((item) => item.id === button.dataset.edit);
+      if (!profile) return;
+      clearStatus();
+      state.originalId = profile.id;
+      state.draft = editableProfile(profile);
+      state.idEdited = true;
+      state.errors = [];
+      state.deleteConfirmation = null;
+      render();
+      root.querySelector("#editor-title")?.focus();
+      root.querySelector("#editor-title")?.scrollIntoView({ block: "start" });
+    }));
+    root.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => {
+      clearStatus();
+      state.deleteConfirmation = button.dataset.delete;
+      render();
+      root.querySelector(`[data-confirm-delete="${button.dataset.delete}"]`)?.focus();
+    }));
+    root.querySelector("[data-cancel-delete]")?.addEventListener("click", () => {
+      const id = state.deleteConfirmation;
+      state.deleteConfirmation = null;
+      render();
+      root.querySelector(`[data-delete="${id}"]`)?.focus();
+    });
+    root.querySelector("[data-confirm-delete]")?.addEventListener("click", async (event) => {
+      if (state.saving) return;
+      const id = event.currentTarget.dataset.confirmDelete;
+      const profile = state.profiles.find((item) => item.id === id);
+      if (!profile) return;
+      const next = state.profiles.filter((item) => item.id !== id);
+      const deleted = await persist(next, `Deleted ${profile.title}.`);
+      if (deleted) {
+        state.deleteConfirmation = null;
+        if (state.originalId === id) resetEditor(false);
+      }
+      render();
+      root.querySelector(deleted ? ".status" : `[data-confirm-delete="${id}"]`)?.focus();
+    });
+  }
+  window.appHost.onInit(async (host) => {
+    state.context = readContext(host.hostContext);
+    state.draft = newDraft();
+    await loadProfiles(host.config);
+    window.appHost.ready();
+  });
+})();
+</script>
+</body>
+</html>

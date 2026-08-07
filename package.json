@@ -1,0 +1,24 @@
+{
+  "name": "kestral-model-profiles",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19 <23"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:reproducible": "node test/reproducible.mjs",
+    "test:package-schema": "node test/package-schema.mjs",
+    "package:digest": "node scripts/package-digest.mjs",
+    "test:release-evidence": "node --test test/release-evidence.test.mjs",
+    "check": "npm run test:reproducible && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "esbuild": "0.25.6",
+    "jsdom": "^29.1.1"
+  }
+}
