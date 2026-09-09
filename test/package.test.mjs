@@ -40,7 +40,7 @@ test("built package follows the Kestral package contract", async () => {
 test("package digest uses Kestral's canonical package framing", async () => {
   assert.equal(
     await packageDigest(dist),
-    "sha256-a97fc2c1a8215c0f7ba5baa35bcdf39097b254a507f9b37c10e2010a8e6caf5a",
+    "sha256-f06c6e032200b0bac3139de7d76309d91e6014324fe8c9908df72d63bce243b8",
   );
 });
 

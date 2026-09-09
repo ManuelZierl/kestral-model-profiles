@@ -71,7 +71,7 @@ test("a first-run empty config can save its first profile", async () => {
   const dom = await createDom({
     getConfig: async () => {
       configReads += 1;
-      throw new Error("initial config should come from the host init payload");
+      return {}; // Saving re-reads the host library before merging this change.
     },
     updateConfig: async (config) => {
       savedConfig = config;
@@ -93,7 +93,7 @@ test("a first-run empty config can save its first profile", async () => {
     save.click();
 
     await waitFor(() => savedConfig !== null);
-    assert.equal(configReads, 0);
+    assert.equal(configReads, 1);
     assert.deepEqual(JSON.parse(JSON.stringify(savedConfig)), {
       profiles: [{
         id: "focused-work",
