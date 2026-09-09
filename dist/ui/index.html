@@ -339,6 +339,7 @@ code { font: 0.9em ui-monospace, monospace; }
   var state = {
     profiles: [],
     originalId: null,
+    editingBaseline: null,
     draft: { ...EMPTY_PROFILE },
     idEdited: false,
     context: { connectors: [], tools: [], promptLayers: [] },
@@ -604,7 +605,8 @@ code { font: 0.9em ui-monospace, monospace; }
     render();
     try {
       const current = profilesFromConfig(await window.appHost.getConfig());
-      const merged = mergeProfileChange(state.profiles, nextProfiles, current, changedId);
+      const previous = state.editingBaseline?.id === changedId ? [...state.profiles.filter((profile) => profile.id !== changedId), state.editingBaseline] : state.profiles;
+      const merged = mergeProfileChange(previous, nextProfiles, current, changedId);
       await window.appHost.updateConfig({ profiles: merged });
       state.profiles = merged;
       state.status = success;
@@ -619,6 +621,7 @@ code { font: 0.9em ui-monospace, monospace; }
   }
   function resetEditor(clearStatus2 = true) {
     state.originalId = null;
+    state.editingBaseline = null;
     state.draft = newDraft();
     state.idEdited = false;
     state.errors = [];
@@ -703,6 +706,7 @@ code { font: 0.9em ui-monospace, monospace; }
       if (!profile) return;
       clearStatus();
       state.originalId = profile.id;
+      state.editingBaseline = structuredClone(profile);
       state.draft = editableProfile(profile);
       state.idEdited = true;
       state.errors = [];

@@ -153,3 +153,28 @@ test("native bad numeric input is not silently saved as a provider default", asy
   assert.equal(app.writes.length, 0);
   assert.match(app.query(".error-summary").textContent, /valid number.*temperature/i);
 });
+
+for (const action of ["save", "delete"]) {
+  test(`${action} keeps the active edit baseline after deleting another profile`, async (t) => {
+    const app = await open(t, {
+      initial: { profiles: [profile(), profile("other")] },
+      current: { profiles: [{ ...profile(), title: "Changed elsewhere" }, profile("other")] },
+    });
+    app.query('[data-edit="saved"]').click();
+    app.enter("description", "My unfinished edit");
+    app.query('[data-delete="other"]').click();
+    app.query('[data-confirm-delete="other"]').click();
+    await waitFor(() => /Deleted/.test(app.query(".status").textContent));
+    assert.equal(app.writes.length, 1);
+    assert.equal(app.query('[name="description"]').value, "My unfinished edit");
+    if (action === "save") app.query('[type="submit"]').click();
+    else {
+      app.query('[data-delete="saved"]').click();
+      app.query('[data-confirm-delete="saved"]').click();
+    }
+    await waitFor(() => app.query(".status").textContent !== "Saving...");
+    assert.equal(app.writes.length, 1, "only the unrelated deletion may write");
+    assert.match(app.query(".status").textContent, /changed in another editor/);
+    assert.equal(app.query('[name="description"]').value, "My unfinished edit");
+  });
+}

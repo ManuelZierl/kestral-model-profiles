@@ -8,6 +8,7 @@ if (!root) throw new Error("Model Profiles app root is missing");
 const state = {
   profiles: [],
   originalId: null,
+  editingBaseline: null,
   draft: { ...EMPTY_PROFILE },
   idEdited: false,
   context: { connectors: [], tools: [], promptLayers: [] },
@@ -311,7 +312,12 @@ async function persist(nextProfiles, success, changedId) {
   render();
   try {
     const current = profilesFromConfig(await window.appHost.getConfig());
-    const merged = mergeProfileChange(state.profiles, nextProfiles, current, changedId);
+    // Refreshing the sidebar after deleting another profile must not silently
+    // adopt a new baseline for the still-unsaved active editor.
+    const previous = state.editingBaseline?.id === changedId
+      ? [...state.profiles.filter((profile) => profile.id !== changedId), state.editingBaseline]
+      : state.profiles;
+    const merged = mergeProfileChange(previous, nextProfiles, current, changedId);
     await window.appHost.updateConfig({ profiles: merged });
     state.profiles = merged;
     state.status = success;
@@ -327,6 +333,7 @@ async function persist(nextProfiles, success, changedId) {
 
 function resetEditor(clearStatus = true) {
   state.originalId = null;
+  state.editingBaseline = null;
   state.draft = newDraft();
   state.idEdited = false;
   state.errors = [];
@@ -412,6 +419,7 @@ function wireEvents() {
     if (!profile) return;
     clearStatus();
     state.originalId = profile.id;
+    state.editingBaseline = structuredClone(profile);
     state.draft = editableProfile(profile);
     state.idEdited = true;
     state.errors = [];
