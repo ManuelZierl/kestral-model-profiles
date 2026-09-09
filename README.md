@@ -75,5 +75,12 @@ build/test development dependencies, and the self-contained UI has no runtime
 dependency notice asset. The package tests verify the `backend: none` payload
 and CI verifies the exact generated output.
 
+Before each save or delete, the editor re-reads the host-owned library and
+merges only the intended profile change. Unrelated changes already present in
+that snapshot are preserved; conflicting edits to the same profile block the
+write and ask the user to reopen the editor. This is not atomic concurrency
+control: the v1 bridge exposes separate reads and writes, so a write racing
+between those calls still requires a future host-side revision/CAS API.
+
 It opts into Chat's generic `model-profile-editor` v1 contract through a manifest
 extension contribution; Kestral does not recognize this app by a privileged ID.

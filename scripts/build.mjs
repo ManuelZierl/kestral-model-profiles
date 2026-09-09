@@ -44,7 +44,12 @@ if (typeof packageMetadata.version !== "string" || packageMetadata.version.lengt
   throw new Error("package.json must declare a non-empty version");
 }
 const script = bundle.outputFiles[0].text.replaceAll("</script", "<\\/script");
-const html = template.replace("__STYLES__", styles).replace("__SCRIPT__", script);
+for (const marker of ["__STYLES__", "__SCRIPT__"]) {
+  if (template.split(marker).length !== 2) throw new Error(`HTML template must contain exactly one ${marker} marker`);
+}
+// A callback inserts dollar sequences literally. One pass also prevents marker
+// text inside a payload from being interpreted as another template slot.
+const html = template.replace(/__STYLES__|__SCRIPT__/g, (marker) => marker === "__STYLES__" ? styles : script);
 const digest = `sha256-${createHash("sha256").update(html).digest("hex")}`;
 await rm(stagedDist, { recursive: true, force: true });
 await mkdir(join(stagedDist, "ui"), { recursive: true });

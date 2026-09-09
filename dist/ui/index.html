@@ -303,6 +303,36 @@ code { font: 0.9em ui-monospace, monospace; }
     return profiles.map((item) => item.id === originalId ? profile : item);
   }
 
+  // src/profile-merge.mjs
+  function sameProfile(left, right) {
+    const fields = (profile) => profile === void 0 ? null : [
+      profile.id,
+      profile.title,
+      profile.description,
+      profile.connector_id,
+      profile.model,
+      profile.reasoning,
+      profile.temperature,
+      profile.max_output_tokens,
+      profile.tools,
+      profile.prompt.layer_ids,
+      profile.prompt.custom_texts
+    ];
+    return JSON.stringify(fields(left)) === JSON.stringify(fields(right));
+  }
+  function mergeProfileChange(previous, proposed, current, id) {
+    const before = previous.find((profile) => profile.id === id);
+    const after = proposed.find((profile) => profile.id === id);
+    const latest = current.find((profile) => profile.id === id);
+    if (!before && !after) throw new Error("The profile change has no target.");
+    if (!sameProfile(before, latest)) {
+      if (sameProfile(after, latest)) return current;
+      throw new Error(`Profile '${id}' changed in another editor or was deleted. Reopen Model Profiles and review the current library before saving.`);
+    }
+    const merged = after ? before ? current.map((profile) => profile.id === id ? after : profile) : [...current, after] : current.filter((profile) => profile.id !== id);
+    return profilesFromConfig({ profiles: merged });
+  }
+
   // src/main.mjs
   var root = document.querySelector("#app");
   if (!root) throw new Error("Model Profiles app root is missing");
@@ -485,8 +515,8 @@ code { font: 0.9em ui-monospace, monospace; }
         </div>${connector?.discovery_error ? `<p class="inline-warning" role="status">Model discovery failed. The configured default remains available: ${escapeHtml(connector.discovery_error)}</p>` : ""}</fieldset>
         <fieldset><legend>Generation</legend><p>Leave a value blank to keep the provider profile's default.</p><div class="generation-grid">
           ${hasVariantChoice() ? `<label><span>Model variant</span><select name="reasoning"><option value="">Provider default</option>${variantOptions(draft.reasoning)}</select></label>` : ""}
-          <label><span>Temperature</span><input name="temperature" type="number" min="0" max="2" step="0.1" value="${draft.temperature ?? ""}" placeholder="Provider default"></label>
-          <label><span>Maximum output tokens</span><input name="max_output_tokens" type="number" min="1" max="1000000" step="1" value="${draft.max_output_tokens ?? ""}" placeholder="Provider default"></label>
+          <label><span>Temperature</span><input name="temperature" type="number" min="0" max="2" step="0.1" value="${escapeHtml(draft.temperature ?? "")}" placeholder="Provider default"></label>
+          <label><span>Maximum output tokens</span><input name="max_output_tokens" type="number" min="1" max="1000000" step="1" value="${escapeHtml(draft.max_output_tokens ?? "")}" placeholder="Provider default"></label>
         </div></fieldset>
         <fieldset><legend>System prompt</legend><p>Select the live prompt layers composed under <strong>Settings \u2192 Chat</strong>. The Kestral protocol stays mandatory. Profile-specific texts are appended in order; clearing every optional layer and text intentionally uses the protocol alone.</p>
           <div class="choice-list">${promptLayerChoices()}</div>
@@ -528,7 +558,12 @@ code { font: 0.9em ui-monospace, monospace; }
   function readDraft(form, keepEmptyCustomTexts = false) {
     const values = valuesFor(form);
     const draft = profileFromForm(values);
-    if (keepEmptyCustomTexts) draft.prompt.custom_texts = values.custom_texts;
+    if (keepEmptyCustomTexts) {
+      for (const field of ["id", "title", "description", "connector_id", "model", "temperature", "max_output_tokens"]) {
+        draft[field] = values[field];
+      }
+      draft.prompt.custom_texts = values.custom_texts;
+    }
     return draft;
   }
   function clearStatus() {
@@ -561,15 +596,17 @@ code { font: 0.9em ui-monospace, monospace; }
     render();
     if (focusFailure && state.loadState === "failed") root.querySelector(".load-state.error")?.focus();
   }
-  async function persist(nextProfiles, success) {
+  async function persist(nextProfiles, success, changedId) {
     if (state.loadState !== "ready" || state.saving) return false;
     state.saving = true;
     state.status = "Saving...";
     state.statusIsError = false;
     render();
     try {
-      await window.appHost.updateConfig({ profiles: nextProfiles });
-      state.profiles = nextProfiles;
+      const current = profilesFromConfig(await window.appHost.getConfig());
+      const merged = mergeProfileChange(state.profiles, nextProfiles, current, changedId);
+      await window.appHost.updateConfig({ profiles: merged });
+      state.profiles = merged;
       state.status = success;
       return true;
     } catch (error) {
@@ -629,7 +666,8 @@ code { font: 0.9em ui-monospace, monospace; }
       event.preventDefault();
       if (state.saving) return;
       state.draft = readDraft(form);
-      state.errors = validateProfile(state.draft, state.profiles, state.originalId);
+      const invalidNumbers = [...form.querySelectorAll('input[type="number"]')].filter((input) => input.validity.badInput).map((input) => `Enter a valid number for ${input.name === "temperature" ? "temperature" : "maximum output tokens"}.`);
+      state.errors = [...invalidNumbers, ...validateProfile(state.draft, state.profiles, state.originalId)];
       if (state.errors.length > 0) {
         state.status = "Profile not saved.";
         state.statusIsError = true;
@@ -638,7 +676,7 @@ code { font: 0.9em ui-monospace, monospace; }
         return;
       }
       const next = upsertProfile(state.profiles, state.draft, state.originalId);
-      const saved = await persist(next, `Saved ${state.draft.title}.`);
+      const saved = await persist(next, `Saved ${state.draft.title}.`, state.draft.id);
       if (saved) resetEditor(false);
       render();
       root.querySelector(saved ? 'input[name="title"]' : 'button[type="submit"]')?.focus();
@@ -675,11 +713,13 @@ code { font: 0.9em ui-monospace, monospace; }
     }));
     root.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => {
       clearStatus();
+      state.draft = readDraft(form, true);
       state.deleteConfirmation = button.dataset.delete;
       render();
       root.querySelector(`[data-confirm-delete="${button.dataset.delete}"]`)?.focus();
     }));
     root.querySelector("[data-cancel-delete]")?.addEventListener("click", () => {
+      state.draft = readDraft(form, true);
       const id = state.deleteConfirmation;
       state.deleteConfirmation = null;
       render();
@@ -691,7 +731,8 @@ code { font: 0.9em ui-monospace, monospace; }
       const profile = state.profiles.find((item) => item.id === id);
       if (!profile) return;
       const next = state.profiles.filter((item) => item.id !== id);
-      const deleted = await persist(next, `Deleted ${profile.title}.`);
+      state.draft = readDraft(form, true);
+      const deleted = await persist(next, `Deleted ${profile.title}.`, id);
       if (deleted) {
         state.deleteConfirmation = null;
         if (state.originalId === id) resetEditor(false);
