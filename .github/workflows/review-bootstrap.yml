@@ -1,0 +1,60 @@
+name: Scoped review verification
+on:
+  push:
+    branches: [review/profile-data-integrity]
+    paths: [.github/workflows/review-bootstrap.yml]
+permissions:
+  contents: write
+jobs:
+  regression:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: review/profile-data-integrity
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: npm
+      - run: npm ci
+      - name: Demonstrate failures on the original implementation
+        run: |
+          cp .review-work/review-ui.test.mjs .review-work/build.test.mjs .review-work/package-digest.test.mjs test/
+          set +e
+          node --test test/review-ui.test.mjs test/build.test.mjs test/package-digest.test.mjs > /tmp/review-before.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/review-before.log
+          test "$status" -ne 0
+      - name: Apply scoped fixes and rebuild the installable package
+        run: |
+          node .review-work/apply.mjs
+          npm run build
+          node --input-type=module - <<'JS'
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { packageDigest } from './scripts/package-digest.mjs';
+          const path = 'test/package.test.mjs';
+          const source = await readFile(path, 'utf8');
+          const old = 'sha256-a97fc2c1a8215c0f7ba5baa35bcdf39097b254a507f9b37c10e2010a8e6caf5a';
+          if (source.split(old).length !== 2) throw new Error('package digest assertion changed unexpectedly');
+          await writeFile(path, source.replace(old, await packageDigest('dist')));
+          JS
+      - run: npm run check
+      - run: npm test
+      - uses: actions/checkout@v6
+        with:
+          repository: ManuelZierl/kestral
+          ref: 82a983a268911e7a1958b4c6eab06dde334070b1
+          path: .kestral-contract
+      - run: npm run test:package-schema -- .kestral-contract/schemas/app.schema.json
+      - name: Commit verified changes to the review branch only
+        run: |
+          rm -rf .review-work
+          rm .github/workflows/review-bootstrap.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src scripts test README.md dist .review-work .github/workflows/review-bootstrap.yml
+          git diff --cached --stat
+          git commit -m 'Fix profile draft loss, stale writes, and package build integrity'
+          git push origin HEAD:refs/heads/review/profile-data-integrity
