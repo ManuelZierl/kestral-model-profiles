@@ -1,0 +1,21 @@
+name: Review dependency audit
+on:
+  push:
+    branches: [review/profile-data-integrity]
+    paths: [.github/workflows/review-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: npm
+      - run: npm ci
+      - name: Inspect audit report
+        continue-on-error: true
+        run: npm audit --json
