@@ -311,17 +311,24 @@ async function persist(nextProfiles, success, changedId) {
   state.statusIsError = false;
   render();
   try {
-    const current = profilesFromConfig(await window.appHost.getConfig());
     // Refreshing the sidebar after deleting another profile must not silently
     // adopt a new baseline for the still-unsaved active editor.
     const previous = state.editingBaseline?.id === changedId
       ? [...state.profiles.filter((profile) => profile.id !== changedId), state.editingBaseline]
       : state.profiles;
-    const merged = mergeProfileChange(previous, nextProfiles, current, changedId);
-    await window.appHost.updateConfig({ profiles: merged });
-    state.profiles = merged;
-    state.status = success;
-    return true;
+    let currentConfig = await window.appHost.getConfig();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const merged = mergeProfileChange(previous, nextProfiles, profilesFromConfig(currentConfig), changedId);
+      const result = await window.appHost.compareUpdateConfig(currentConfig, { profiles: merged });
+      if (result?.kind === "updated") {
+        state.profiles = profilesFromConfig(result.config);
+        state.status = success;
+        return true;
+      }
+      if (result?.kind !== "conflict") throw new Error("Kestral returned an invalid config update result.");
+      currentConfig = result.current;
+    }
+    throw new Error("The profile library kept changing in another editor. Review the latest profiles and try again.");
   } catch (error) {
     state.status = `Could not save: ${error instanceof Error ? error.message : String(error)}`;
     state.statusIsError = true;

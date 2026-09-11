@@ -38,6 +38,15 @@ async function open(t, { initial = { profiles: [profile()] }, current = initial,
           current = structuredClone(value);
           return value;
         },
+        compareUpdateConfig: async (expected, value) => {
+          if (JSON.stringify(expected) !== JSON.stringify(current)) {
+            return { kind: "conflict", current: structuredClone(current) };
+          }
+          writes.push(structuredClone(value));
+          if (failWrite) throw new Error("disk unavailable");
+          current = structuredClone(value);
+          return { kind: "updated", config: value };
+        },
       };
     },
   });

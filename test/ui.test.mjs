@@ -60,6 +60,10 @@ async function createDom({
         },
         getConfig,
         updateConfig,
+        compareUpdateConfig: async (expected, config) => {
+          const result = await updateConfig(config, expected);
+          return result?.kind ? result : { kind: "updated", config: result };
+        },
       };
     },
   });
@@ -108,6 +112,38 @@ test("a first-run empty config can save its first profile", async () => {
         prompt: { layer_ids: [], custom_texts: [] },
       }],
     });
+  } finally {
+    dom.window.close();
+  }
+});
+
+test("a save retries atomically when another editor changes an unrelated profile", async () => {
+  const initial = { profiles: [storedProfile(), storedProfile({ id: "other", title: "Other" })] };
+  const external = { profiles: [storedProfile(), storedProfile({ id: "other", title: "External edit" })] };
+  const attempts = [];
+  const dom = await createDom({
+    initialConfig: initial,
+    getConfig: async () => initial,
+    updateConfig: async (config, expected) => {
+      attempts.push({ config, expected });
+      if (attempts.length === 1) return { kind: "conflict", current: external };
+      return { kind: "updated", config };
+    },
+  });
+
+  try {
+    await waitFor(() => dom.window.document.querySelector("[data-edit]"));
+    dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+    dom.window.document.querySelector("[data-edit]").click();
+    const description = dom.window.document.querySelector('textarea[name="description"]');
+    description.value = "My edit";
+    description.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    dom.window.document.querySelector('button[type="submit"]').click();
+
+    await waitFor(() => attempts.length === 2);
+    assert.deepEqual(JSON.parse(JSON.stringify(attempts[1].expected)), external);
+    assert.equal(attempts[1].config.profiles.find((profile) => profile.id === "focused-work").description, "My edit");
+    assert.equal(attempts[1].config.profiles.find((profile) => profile.id === "other").title, "External edit");
   } finally {
     dom.window.close();
   }

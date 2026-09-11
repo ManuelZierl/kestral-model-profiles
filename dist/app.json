@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "id": "com.ma-zierl.kestral-model-profiles",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "display_name": "Model Profiles",
   "description": "Save reusable model, prompt, generation, and tool configurations for Chat.",
   "publisher": {
@@ -192,7 +192,7 @@
   "integrity": {
     "algorithm": "sha256",
     "assets": {
-      "ui/index.html": "sha256-a79cf7dbe580f66c7ef52b9a88ed053df0d67d4cd5d650e7494dda5d7ed4c3a0"
+      "ui/index.html": "sha256-7bc4fd136d4fa125bebedbf80a3debb08aaec4472e24188f0396b31b1e2ffc1b"
     }
   }
 }
