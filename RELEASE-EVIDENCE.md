@@ -51,9 +51,11 @@ The checks must cover these Model Profiles cases:
    Profiles cannot turn a profile tool list into a grant.
 3. Activate the app and open **Model Profiles**. Record the empty first-run
    config `{ "profiles": [] }` as an observed no-op before saving anything.
-4. Create a profile, save it, select it beside Chat's composer, and verify that
-   the host stores the canonical `model-profiles` value. Confirm a profile only
-   reduces Chat's currently granted tools; it never grants one.
+4. Create a profile and save it through the atomic `compareUpdateConfig` bridge
+   operation, select it beside Chat's composer, and verify that the host stores
+   the canonical `model-profiles` value. Confirm a profile only reduces Chat's
+   currently granted tools; it never grants one. This successful save must use
+   the exact host commit recorded in the evidence.
 5. Restart Kestral. Confirm the saved profile, discovered provider/model
    choices, and Chat selection are restored from host-owned config.
 6. Update to the exact package under test. Confirm the host-owned config is

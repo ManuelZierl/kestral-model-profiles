@@ -12,12 +12,18 @@ or revoked tools remain unavailable.
 ## Build
 
 The minimum supported Kestral host is `0.1.0-alpha.1`, matching
-`dist/app.json`. Node.js is a build-only tool: use the exact supported line
-`>=22.19 <23` for `npm ci`, builds, and tests. No Node runtime or backend ships
-in the installable package.
+`dist/app.json`. This coordinated first alpha release includes the atomic
+`compareUpdateConfig` surface API used by the editor; there is no earlier
+released `0.1.0-alpha.1` host contract. Promotion evidence records and tests the
+exact final Kestral commit rather than treating an earlier development build
+with the same provisional version as supported. Node.js is a build-only tool:
+use the exact supported line `>=22.19 <23` for `npm ci`, builds, and tests. No
+Node runtime or backend ships in the installable package. This alpha is
+supported on Kestral's Windows x86_64 and Linux x86_64 desktop releases.
 
 ```sh
 npm ci
+npm audit --audit-level=high
 npm run build
 ```
 
@@ -75,5 +81,19 @@ build/test development dependencies, and the self-contained UI has no runtime
 dependency notice asset. The package tests verify the `backend: none` payload
 and CI verifies the exact generated output.
 
+Before each save or delete, the editor re-reads the host-owned library and
+merges only the intended profile change. It then uses Kestral's atomic
+compare-and-update config operation. Unrelated concurrent changes are merged
+and retried; conflicting edits to the same profile block the write rather than
+silently replacing either version.
+
 It opts into Chat's generic `model-profile-editor` v1 contract through a manifest
 extension contribution; Kestral does not recognize this app by a privileged ID.
+
+The immutable `v0.1.1` package is the predecessor for the `0.1.2` update test.
+Disable and keep-data uninstall retain host-owned profiles; purge removes them.
+Historical Runs and artifacts follow Kestral's normal provenance retention.
+
+Manuel Zierl maintains this repository. Report ordinary defects through
+[GitHub Issues](https://github.com/ManuelZierl/kestral-model-profiles/issues) and
+security-sensitive defects through [private vulnerability reporting](https://github.com/ManuelZierl/kestral-model-profiles/security/advisories/new).

@@ -15,8 +15,28 @@ function compareUtf8(left, right) {
   return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"));
 }
 
+async function readPackageFile(packageRoot, relativePath) {
+  const segments = relativePath.split("/");
+  if (isAbsolute(relativePath) || relativePath.includes("\\")
+    || segments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+    throw new Error(`invalid package path '${relativePath}'`);
+  }
+  let filePath = packageRoot;
+  for (const [index, segment] of segments.entries()) {
+    filePath = join(filePath, segment);
+    const metadata = await lstat(filePath);
+    const leaf = index === segments.length - 1;
+    // lstat the ancestors too: checking just the leaf follows symlinked
+    // directories and can read bytes outside the selected package.
+    if (leaf ? !metadata.isFile() : !metadata.isDirectory()) {
+      throw new Error(`package entry '${relativePath}' contains a non-regular file or directory`);
+    }
+  }
+  return readFile(filePath);
+}
+
 async function packageFiles(packageRoot) {
-  const manifest = JSON.parse(await readFile(join(packageRoot, "app.json"), "utf8"));
+  const manifest = JSON.parse(await readPackageFile(packageRoot, "app.json"));
   const assets = manifest.integrity?.assets;
   if (!assets || typeof assets !== "object" || Array.isArray(assets)) {
     throw new Error("app.json must declare integrity.assets");
@@ -30,13 +50,7 @@ export async function packageDigest(packageDirectory) {
   const packageRoot = resolve(fileURLToPath(packageDirectory instanceof URL ? packageDirectory : pathToFileURL(packageDirectory)));
   const hash = createHash("sha256");
   for (const relativePath of await packageFiles(packageRoot)) {
-    if (isAbsolute(relativePath) || relativePath.split("/").includes("..") || relativePath.includes("\\")) {
-      throw new Error(`invalid package path '${relativePath}'`);
-    }
-    const filePath = join(packageRoot, ...relativePath.split("/"));
-    const metadata = await lstat(filePath);
-    if (!metadata.isFile()) throw new Error(`package entry '${relativePath}' is not a regular file`);
-    const content = await readFile(filePath);
+    const content = await readPackageFile(packageRoot, relativePath);
     const pathBytes = Buffer.from(relativePath, "utf8");
     hash.update(littleEndianLength(pathBytes.length));
     hash.update(pathBytes);
